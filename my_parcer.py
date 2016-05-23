@@ -1,5 +1,8 @@
 import MySQLdb
 import pdb
+import os
+import glob
+import json
 
 
 def dict_to_tuples(d):
@@ -33,8 +36,6 @@ class DBconnector(object):
               "(" + ", ".join(["%s"]*len(kwargs)) % keys + \
               ") VALUES (" + ",".join(["%s"]*len(kwargs)) + ")" 
               
-              
-        
         
         self.cursor.execute(query, values)
         self.db.commit()
@@ -42,6 +43,20 @@ class DBconnector(object):
     def close(self):
         self.cursor.close()
         self.db.close()
+    
+def extract_velobike_json(filename):
+    with open(filename) as f:
+        data = json.load(f)
+    return data['Items']
+    
+        
+def extract_data(folder, file_mask,
+                 sorting_key=os.path.getctime,
+                 extractor=extract_velobike_json):
+    filename = max(glob.iglob(os.path.join(folder, file_mask)), key=sorting_key)
+    timestamp = filename.split('/')[-1].split('_')[1]
+    return timestamp, extractor(filename)
+    
 
 if __name__ == '__main__':
     from ConfigParser import ConfigParser
@@ -51,6 +66,14 @@ if __name__ == '__main__':
     
     db = DBconnector(db=config['db'], user=config['db_user'])
     
-    db.insert_row(config['tablename'], timestamp=102, station_id='a', bikes_cnt=6, free_spases_cnt=4)
+    timestamp, data_list = extract_data(config['folder'], config['file_mask'])
+    
+    for record in data_list:
+        db.insert_row(config['tablename'],
+                      timestamp=timestamp,
+                      station_id=record['Id'],
+                      bikes_cnt=record['TotalPlaces']-record['FreePlaces'],
+                      free_spases_cnt=record['FreePlaces'])
+    
     db.close()
     

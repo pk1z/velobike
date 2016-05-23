@@ -21,7 +21,6 @@ class TestDB(unittest.TestCase):
     def test_wrong_station(self):
         with self.assertRaises(Exception):
             self.db.insert_row(self.tablename, timestamp=100, station_id='a', bikes_cnt=6, free_spases_cnt=4)
-    
 
 
 if __name__ == '__main__':
