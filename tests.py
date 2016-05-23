@@ -1,6 +1,6 @@
 import unittest
 from ConfigParser import ConfigParser
-from my_parcer import DBconnector
+from my_parser import DBconnector
 
 
 class TestDB(unittest.TestCase):
