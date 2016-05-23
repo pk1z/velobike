@@ -64,7 +64,11 @@ if __name__ == '__main__':
     whole_config.read('parser_config.ini')
     config = dict(whole_config.items(whole_config.get('env', 'env')))
     
-    db = DBconnector(db=config['db'], user=config['db_user'])
+    db = DBconnector(host=config['db_host'],
+                     port=int(config['db_port']),
+                     db=config['db'],
+                     user=config['db_user'],
+                     passwd=config['db_pwd'])
     
     timestamp, data_list = extract_data(config['folder'], config['file_mask'])
     
@@ -76,4 +80,3 @@ if __name__ == '__main__':
                       free_spases_cnt=record['FreePlaces'])
     
     db.close()
-    
