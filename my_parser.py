@@ -74,9 +74,9 @@ if __name__ == '__main__':
     
     for record in data_list:
         db.insert_row(config['tablename'],
-                      timestamp=timestamp,
-                      station_id=record['Id'],
-                      bikes_cnt=record['TotalPlaces']-record['FreePlaces'],
-                      free_spases_cnt=record['FreePlaces'])
+                      timestamp=int(timestamp),
+                      station_id=int(record['Id']),
+                      bikes_cnt=int(record['TotalPlaces'])-record['FreePlaces']),
+                      free_spases_cnt=int(record['FreePlaces']))
     
     db.close()
