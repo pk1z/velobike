@@ -3,6 +3,7 @@ import pdb
 import os
 import glob
 import json
+import pdb
 
 
 def dict_to_tuples(d):
@@ -39,10 +40,38 @@ class DBconnector(object):
         
         self.cursor.execute(query, values)
         self.db.commit()
+    
+    def insert_factory(self, tablename, keys):
+        query = "INSERT INTO %s" % (tablename,) + \
+              "(" + ", ".join(["%s"]*len(keys)) % keys + \
+              ") VALUES (" + ",".join(["%s"]*len(keys)) + ")"
+        def insert(list_of_rows):
+            self.cursor.executemany(query, list_of_rows)
+            self.db.commit()
+        return insert
+    
+    def insert_rows(self, tablename, keys, values):
+        """
+        :param keys: tuple of column names
+        :param values: list of tuples of values
+        """
+        query = "INSERT INTO %s" % (tablename,) + \
+              "(" + ", ".join(["%s"]*len(keys)) % keys + \
+              ") VALUES (" + ",".join(["%s"]*len(keys)) + ")"
+        self.cursor.executemany(query, values)  
+        self.db.commit()
         
+    def check_presense(self, tablename, key, value):    
+        query = "SELECT * from %s" % (tablename,) + \
+                " WHERE %s=%%s" % (key)
+        self.cursor.execute(query, (value,))
+        return self.cursor.fetchone() is not None
+    
+    
     def close(self):
         self.cursor.close()
         self.db.close()
+    
     
 def extract_velobike_json(filename):
     with open(filename) as f:
@@ -58,11 +87,27 @@ def extract_data(folder, file_mask,
     return timestamp, extractor(filename)
     
 
+def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepare, insert):
+    filenames = sorted(glob.iglob('raw_data/*.json'), key=lambda x: -timestamp(x))
+    for filename in filenames:
+        if is_obsolete(filename):
+            break
+        data_list = extract(filename)
+        data = prepare(data_list, timestamp(filename))
+        insert(data)
+
+
+def prepare_data_list(data_list, directions_list):
+    return [tuple(direction(entry) for direction in directions_list) for entry in data_list]
+
+
 if __name__ == '__main__':
     from ConfigParser import ConfigParser
     whole_config = ConfigParser()
     whole_config.read('parser_config.ini')
     config = dict(whole_config.items(whole_config.get('env', 'env')))
+    
+    parse_timestamp = lambda filename: int(filename.split('/')[-1].split('_')[1])
     
     db = DBconnector(host=config['db_host'],
                      port=int(config['db_port']),
@@ -70,13 +115,22 @@ if __name__ == '__main__':
                      user=config['db_user'],
                      passwd=config['db_pwd'])
     
-    timestamp, data_list = extract_data(config['folder'], config['file_mask'])
+    COLUMNS = ('timestamp', 'station_id', 'bikes_cnt', 'free_spases_cnt')
     
-    for record in data_list:
-        db.insert_row(config['tablename'],
-                      timestamp=int(timestamp),
-                      station_id=int(record['Id']),
-                      bikes_cnt=int(record['TotalPlaces'])-record['FreePlaces']),
-                      free_spases_cnt=int(record['FreePlaces']))
+    insert = db.insert_factory(config['tablename'], COLUMNS)
+    prepare = lambda data_list, timestamp: prepare_data_list(data_list,
+                                                             [lambda d: timestamp,
+                                                              lambda d: d['Id'],
+                                                              lambda d: d['TotalPlaces']-d['FreePlaces'],
+                                                              lambda d: d['FreePlaces']])
+    
+    process_folder(foldername=config['folder'],
+                   file_mask=config['file_mask'], 
+                   timestamp=parse_timestamp,
+                   is_obsolete=lambda filename: db.check_presense(config['tablename'], 'timestamp', parse_timestamp(filename)),
+                   extract=extract_velobike_json,
+                   prepare=prepare,
+                   insert=insert)
+    
     
     db.close()
