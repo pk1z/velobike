@@ -4,7 +4,7 @@ import os
 import glob
 import json
 import pdb
-
+import time
 
 def dict_to_tuples(d):
     """
@@ -88,6 +88,7 @@ def extract_data(folder, file_mask,
     
 
 def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepare, insert):
+    start_time = time.time()
     filenames = sorted(glob.iglob(foldername + '/' + file_mask), key=lambda x: -timestamp(x))
     for filename in filenames:
         print 'processing ' + filename
@@ -97,7 +98,7 @@ def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepa
             data_list = extract(filename)
             data = prepare(data_list, timestamp(filename))
             insert(data)
-
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 def prepare_data_list(data_list, directions_list):
     return [tuple(direction(entry) for direction in directions_list) for entry in data_list]
