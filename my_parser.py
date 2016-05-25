@@ -88,7 +88,7 @@ def extract_data(folder, file_mask,
     
 
 def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepare, insert):
-    filenames = sorted(glob.iglob(foldername + '/' + file_mask), key=lambda x: -timestamp(x))
+    filenames = glob.iglob(os.path.join(foldername, file_mask))
     for filename in filenames:
         print 'processing ' + filename
         if is_obsolete(filename):
