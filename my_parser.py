@@ -88,13 +88,15 @@ def extract_data(folder, file_mask,
     
 
 def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepare, insert):
-    filenames = sorted(glob.iglob('raw_data/*.json'), key=lambda x: -timestamp(x))
+    filenames = sorted(glob.iglob(foldername + '/' + file_mask), key=lambda x: -timestamp(x))
     for filename in filenames:
+        print 'processing ' + filename
         if is_obsolete(filename):
-            break
-        data_list = extract(filename)
-        data = prepare(data_list, timestamp(filename))
-        insert(data)
+            print 'file ' + filename + ' already processed'
+        else:
+            data_list = extract(filename)
+            data = prepare(data_list, timestamp(filename))
+            insert(data)
 
 
 def prepare_data_list(data_list, directions_list):
