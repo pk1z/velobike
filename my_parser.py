@@ -1,10 +1,8 @@
 import MySQLdb
-import pdb
 import os
 import glob
 import json
-import pdb
-
+import time
 
 def dict_to_tuples(d):
     """
@@ -88,6 +86,8 @@ def extract_data(folder, file_mask,
     
 
 def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepare, insert):
+    start_time = time.time()
+    
     filenames = glob.iglob(os.path.join(foldername, file_mask))
     for filename in filenames:
         print 'processing ' + filename
@@ -97,7 +97,7 @@ def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepa
             data_list = extract(filename)
             data = prepare(data_list, timestamp(filename))
             insert(data)
-
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 def prepare_data_list(data_list, directions_list):
     return [tuple(direction(entry) for direction in directions_list) for entry in data_list]
@@ -133,6 +133,5 @@ if __name__ == '__main__':
                    extract=extract_velobike_json,
                    prepare=prepare,
                    insert=insert)
-    
     
     db.close()
