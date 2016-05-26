@@ -73,7 +73,10 @@ class DBconnector(object):
     
 def extract_velobike_json(filename):
     with open(filename) as f:
-        data = json.load(f)
+        try:
+            data = json.load(f)
+        except ValueError, e:
+            return []
     return data['Items']
     
         
@@ -90,10 +93,10 @@ def process_folder(foldername, file_mask, timestamp, is_obsolete, extract, prepa
     
     filenames = glob.iglob(os.path.join(foldername, file_mask))
     for filename in filenames:
-        print 'processing ' + filename
         if is_obsolete(filename):
-            print 'file ' + filename + ' already processed'
+            print 's'
         else:
+            print '+'
             data_list = extract(filename)
             data = prepare(data_list, timestamp(filename))
             insert(data)
